@@ -1,0 +1,13 @@
+0:limpia
+1:ordenada
+2:rapida
+3:compacta
+4:marciana
+5:antibalas
+6:inexpugnable
+7:poetisa
+8:traslucida
+9:eh... um... Vaya, creo que no tengo mas virtudes...
+10:eh... um... Vaya, creo que no tengo mas virtudes...
+11:eh... um... Vaya, creo que no tengo mas virtudes...
+12:... oye deja de preguntarme virtudes, no doy pa' mas...

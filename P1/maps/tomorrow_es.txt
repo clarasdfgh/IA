@@ -1,0 +1,14 @@
+Domingo:Lunes
+Lunes:Martes
+Martes:Miercoles
+Miercoles:Jueves
+Jueves:Viernes
+Viernes:Sabado
+Sabado:Domingo
+Sunday:Lunes
+Monday:Martes
+Tuesday:Miercoles
+Wednesday:Jueves
+Thursday:Viernes
+Friday:Sabado
+Saturday:Domingo

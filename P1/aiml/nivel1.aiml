@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="2.0">
+
+<!-- CORTESIAS _____________________________________________________________ -->
+<category>
+	<pattern># HOLA # $DENTISTA #</pattern>
+	<template>
+		<random>
+			<li> Hola! Clinica dental K-ries, digame</li>
+			<li> Holaa, como puedo ayudarte? </li>
+			<li> Buenaaaaas, oficina del dentista </li>
+		</random>
+	</template>
+</category>
+
+<category>
+	<pattern>^</pattern>
+	<template>Como? Porfa, repite eso un poco mas claro</template>
+</category>
+
+<!-- PEDIR CITA _____________________________________________________________-->
+<category>
+	<pattern>^ CITA ^</pattern>
+	<template> Una cita dices? En plan al cine y a cenar? Ah no, espera, claro...
+Para el dentista. *Snif* Para que dia?
+<srai>APPOINTMENT</srai>
+	</template>
+</category>
+
+<category>
+	<pattern> ^ PEDIR HORA ^</pattern>
+	<template> Claro que te doy la hora, son las... Ay espera, que quieres pedir
+hora para el dentista, no? Que dia?
+<srai>APPOINTMENT</srai>
+	</template>
+</category>
+
+<!-- PARA EL DIA... _________________________________________________________-->
+<category>
+	<pattern>^ (EL) (DIA) <set>number</set> [DE DEL] (MES) <set>number</set></pattern> <!--Para formato numerico-->
+	<template>
+		<think>
+			<condition name="fecha">	<!--Para que no interfiera con la fecha en formato escrito-->
+				<li value="unknown">
+					<set name="dia"><star index="2"/></set>
+					<set name="mes_num"><star index="3"/></set>
+					<set name="fecha"><get name="dia"/>-<get name="mes_num"/>-20 </set>
+				</li>
+			</condition>
+		</think>
+	Para el dia <get name="dia"/>... Dame un segundo que mire...
+<!--Vemos si el día esta completamente lleno antes que nada-->
+		<think>
+			<set name="estaocupado">
+				<srai>FINDITEM null IN <srai>SUBLIST FROM 9 TO 21 OF <srai>LIST OF DAY <get name="fecha"/></srai></srai></srai>
+			</set>
+		</think>
+<condition name="estaocupado">
+	<li value="0">Pues precisamente ese día nos viene fatal...
+Es el dia internacional de darse 20 martillazos en los dientes y claro, estamos
+completos. Dime otro dia que te venga bien, anda.
+	<think> <!--Eliminamos toda la información sobre la fecha porque ya no nos sirve, el dia está ocupado-->
+		<set name="dia">unknown</set>
+		<set name="mes_num">unknown</set>
+		<set name="fecha">unknown</set>
+		<set name="estaocupado">unknown</set>
+		<set name="especificado">unknown</set>
+	</think>
+	</li>
+<li>
+<condition name="especificado"> <!--Si se especifica maniana/tarde u hora, no veremos la lista completa-->
+<li value="unknown">
+Guay, ese día tenemos huecos. Mira, a ver si te viene bien alguna de estas horas:
+<srai>FREE BETWEEN 9 AND 21</srai>
+Si no, siempre puedes decirme otro dia.
+			</li>
+		</condition>
+	</li>
+</condition>
+</template>
+</category>
+
+
+<category>
+	<pattern>^ (EL)(DIA) <set>number</set> DE <set>month_es</set></pattern> <!--Para formato escrito-->
+	<template>
+		<think>
+			<set name="dia"><star index="2"/></set>
+			<set name="mes_num"><map name="month_es"><star index="3"/></map></set>
+			<set name="fecha"><get name="dia"/>-<get name="mes_num"/>-20 </set>
+		</think>
+		<srai> EL DIA <get name="dia"/> DE <get name="mes_num"/></srai>
+</template>
+</category>
+
+<!--POR LA MAÑANA O POR LA TARDE? ___________________________________________-->
+
+<category>
+	<pattern>^ POR LA [MANYANA MANANA MANIANA] ^</pattern>
+	<template>
+		<condition name="fecha">	<!--Hay que saber primero el dia-->
+			<li value="unknown"> Por la maniana pero... de que dia? </li>
+			<li> Por la maniana tenemos estas horas libres:
+<srai>FREE BETWEEN 9 AND 13</srai>
+			</li>
+	</condition>
+	</template>
+</category>
+
+
+<category>
+	<pattern>^ POR LA TARDE ^</pattern>
+	<template>
+		<condition name="fecha">	<!--Hay que saber primero el dia-->
+			<li value="unknown"> Por la tarde pero... de que dia? </li>
+			<li> Por la tarde tenemos estas horas libres:
+<srai>FREE BETWEEN 14 AND 21</srai>
+			</li>
+	</condition>
+	</template>
+</category>
+
+<!-- A LAS... _______________________________________________________________-->
+<category>
+	<pattern>A LAS <set>number</set> ^</pattern>
+	<template>
+		<condition name="fecha">
+			<li value="unknown"> Pero como me vas a decir una hora si no se el dia?</li>
+			<li> A ver que mire la agenda...
+					<think>
+					<set name="hora"><star index="1"/>:00</set>
+					<set var="ocupado">
+						<srai>IS BUSY DAY <get name="fecha"/> AT <get name="hora"/></srai>
+					</set>
+					<set var="horario">
+						<srai>IS HORAS INTEMPESTIVAS <get name="hora"/></srai>
+					</set>
+					</think>
+
+				<condition var="ocupado">
+<li value="TRUE">Pues esa hora no va a poder ser, lo siento. Dime otra hora.
+Tambien puedes cambiar la fecha.
+						<think>
+							<set name="hora">unknown</set>
+						</think>
+					</li>
+<li>
+<condition var="horario">
+<li value="TRUE">A las <get name="hora"/>?! Tu que te crees, que soy una máquina?
+Que vivo aqui las 24 horas del dia, esperando que me pidas cita,
+como si fuera yo un programa de ordenador? Menuda jeta.
+Las horas de visita son de 8 a 20, caradura.
+								<think>
+									<set name="hora">unknown</set>
+								</think>
+							</li>
+<li>A las <get name="hora"/>? Perfecto, te apunto la cita!
+<think><srai>MARK ocupado AT <get name="hora"/> ON <get name="fecha"/></srai></think>
+Hecho! Tienes hora a las <get name="hora"/> el <get name="fecha"/>.
+Puedes anular la cita si al final no te viene bien.</li>
+
+						</condition>
+					</li>
+				</condition>
+			</li>
+	</condition>
+	</template>
+</category>
+
+<!--EL DIA TAL POR LA...  ___________________________________________________-->
+<category>
+	<pattern>^ (EL) (DIA) <set>number</set> [DE DEL] (MES) <set>number</set> $POR LA *</pattern>
+	<template>
+		<think>
+			<set var="momento"><star index="4"/></set>
+			<set name="especificado">SI</set> <!--Para que el srai base de la fecha no nos de info. repetida-->
+		</think>
+		<condition var="momento">
+			<li value="tarde"><srai>EL DIA <star index="2"/> DEL MES <star index="3"/></srai>
+<srai>POR LA TARDE</srai></li>
+			<li><srai>EL DIA <star index="2"/> DEL MES <star index="3"/></srai>
+<srai>POR LA MANIANA</srai></li>
+		</condition>
+	</template>
+</category>
+
+<category>
+	<pattern>^ (EL)(DIA) <set>number</set> DE <set>month_es</set> $POR LA *</pattern>
+	<template>
+		<think>
+			<set var="momento"><star index="4"/></set>
+			<set name="especificado">SI</set> <!--Para que el srai base de la fecha no nos de info. repetida-->
+		</think>
+		<condition var="momento">
+			<li value="tarde"><srai>EL DIA <star index="2"/> DE <star index="3"/></srai>
+<srai>POR LA TARDE</srai></li>
+			<li><srai>EL DIA <star index="2"/> DE <star index="3"/></srai>
+<srai>POR LA MANIANA</srai></li>
+		</condition>
+	</template>
+</category>
+
+
+<!--ME HE ARREPENTIDO _______________________________________________________-->
+<category>
+	<pattern>^ CAMBIAR FECHA ^</pattern>
+	<template>Ya no quieres cita para el dia <get name="dia"/> de <map name="month_es"><get name="mes_num"/></map>?
+Esta bien, te busco otro dia. Dime la fecha nueva.
+	<think>
+		<set name="dia">unknown</set>
+		<set name="mes_num">unknown</set>
+		<set name="fecha">unknown</set>
+		<set name="estaocupado">unknown</set>
+		<set name="especificado">unknown</set>
+	</think>
+	</template>
+</category>
+
+<category>
+	<pattern>^ ANULAR CITA ^</pattern>
+	<template>Ya no quieres cita para el <get name="fecha"/> a las <get name="hora"/>?
+Esta bien, la anulo. Puedes pedir otra, si quieres.
+	<think>
+		<srai>MARK null AT <get name="hora"/> ON <get name="fecha"/></srai>
+		<set name="dia">unknown</set>
+		<set name="mes_num">unknown</set>
+		<set name="fecha">unknown</set>
+		<set name="hora">unknown</set>
+		<set name="estaocupado">unknown</set>
+		<set name="especificado">unknown</set>
+	</think>
+	</template>
+</category>
+
+
+<!--CONSULTA ________________________________________________________________-->
+<!--Algunas funciones para ver el correcto funcionamiento del programa-->
+<category>
+	<pattern>^ QUE FECHA ^</pattern>
+	<template>
+		<condition name="fecha">
+			<li value="unknown"> Pues eso me gustaria saber a mi! Decidete de una vez y dime una fecha! </li>
+			<li>Te estoy buscando cita para la siguiente fecha: <get name="fecha"/></li>
+		</condition>
+	</template>
+</category>
+
+<category>
+	<pattern>^ CITA EL * A LAS *</pattern> <!--Recibe fecha (xx-xx-xx) y hora (xx:xx) y confirma si hay una cita o no-->
+	<template>
+		<think>
+			<set var="ocupado">
+				<srai>IS BUSY DAY <star index="2"/> AT <star index="3"/></srai>
+			</set>
+		</think>
+		<condition var="ocupado">
+			<li value="TRUE">Si, hay una cita marcada</li>
+			<li>No, no hay ninguna cita</li>
+		</condition>
+	</template>
+</category>
+
+
+<!--FUNCIONES AUXILIARES ____________________________________________________-->
+<!--DISCLAIMER: Estas funciones no comprueban la fecha porque se usan en contextos en los que
+ya se ha tenido en cuenta si la fecha estaba declarada o no. No son muy genéricas que digamos-->
+
+<category>
+	<pattern>APPOINTMENT</pattern>
+	<template>Ah, antes de que digas nada! Tengo una enfermedad rara con un nombre larguisimo
+que hace que solo entienda los numeros en formato de 2 digitos. O sea, si me
+quieres decir "uno", dime 01, cero, uno; como en el bingo. Graciaaas.
+
+Que dia querias la cita?
+	</template>
+</category>
+
+<category>
+	<pattern>PRINT IF FREE *</pattern> <!--Recibe una hora formato xx:xx y la devuelve solo si está libre-->
+	<template><think>
+			<set var="es_ocupado">
+				<srai>IS BUSY DAY <get name="fecha"/> AT <star /></srai>
+			</set>
+</think>
+<condition var="es_ocupado">
+<li value="FALSE"><star/></li>
+	</condition>
+	</template>
+</category>
+
+<category>
+	<pattern>FREE BETWEEN * AND *</pattern> <!--Recibe dos posiciones y devuelve las horas libres entre ellas-->
+	<template>
+		<think><set var="pos"><star index="1"/></set></think>
+			<condition var="pos">
+					<li><value><star index="2"/></value><think><set var="hora"><map name="horas"><get var="pos"/></map>:00</set>
+</think><srai> PRINT IF FREE <get var="hora"/></srai>
+</li>
+					<li>
+<think><set var="hora"><map name="horas"><get var="pos"/></map>:00</set><set var="pos"><srai>PLUS <get var="pos"/> 1</srai></set>
+</think><srai> PRINT IF FREE <get var="hora"/> </srai><loop/>
+</li>
+			</condition>
+	</template>
+</category>
+
+<category>
+	<pattern>IS HORAS INTEMPESTIVAS *</pattern> <!--Recibe hora (xx:xx) y devuelve si está fuera del horario laboral-->
+	<template>
+		<think>
+			<set var="pos">
+				<srai>ORDINAL <star/></srai>
+			</set>
+		</think>
+		<condition var="pos">
+			<li value="1">TRUE</li>
+			<li value="2">TRUE</li>
+			<li value="3">TRUE</li>
+			<li value="4">TRUE</li>
+			<li value="5">TRUE</li>
+			<li value="6">TRUE</li>
+			<li value="7">TRUE</li>
+			<li value="8">TRUE</li>
+			<li value="22">TRUE</li>
+			<li value="23">TRUE</li>
+			<li value="24">TRUE</li>
+			<li>FALSE</li>
+		</condition>
+	</template>
+</category>
+
+</aiml>
